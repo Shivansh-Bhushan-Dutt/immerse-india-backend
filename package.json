@@ -1,0 +1,43 @@
+{
+  "name": "travel-dashboard-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server-simple.js",
+    "dev": "nodemon server-simple.js",
+    "start:full": "node server.js",
+    "dev:full": "nodemon server.js",
+    "setup": "node setup.js",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:studio": "prisma studio",
+    "test:db": "node test-railway-connection.js",
+    "test:cloudinary": "node test-cloudinary-connection.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "travel",
+    "dashboard",
+    "api",
+    "express",
+    "prisma"
+  ],
+  "author": "Shivansh",
+  "license": "MIT",
+  "description": "Backend API for Travel Dashboard with authentication, file uploads, and database management",
+  "dependencies": {
+    "@prisma/client": "^6.17.0",
+    "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10",
+    "prisma": "^6.17.0"
+  }
+}
