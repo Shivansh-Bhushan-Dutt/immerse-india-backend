@@ -1,0 +1,9 @@
+DATABASE_URL=postgresql://postgres:OnRXKfjBUimPwxXFnfxQzJaHAFEWqHXx@turntable.proxy.rlwy.net:15843/railway
+DIRECT_URL=postgresql://postgres:OnRXKfjBUimPwxXFnfxQzJaHAFEWqHXx@postgres.railway.internal:5432/railway
+JWT_SECRET=8850d84fce9f2aebf4de41b493458edf4129df8ef1c1e4ae2d32127f8994cf76
+JWT_EXPIRES_IN=7d
+CLOUDINARY_CLOUD_NAME=dn8hhbstq
+CLOUDINARY_API_KEY=493937614836824
+CLOUDINARY_API_SECRET=ecfTCo3RPVs1i4hFj9rzsLILeCI
+NODE_ENV=production
+FRONTEND_URL=https://immerseindia.vercel.app
