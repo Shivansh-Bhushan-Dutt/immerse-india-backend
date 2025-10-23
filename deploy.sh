@@ -1,0 +1,45 @@
+#!/bin/bash
+# Railway Deployment Script for Immerse India Backend
+
+echo "🚂 Starting Railway Deployment Process..."
+echo ""
+
+# Step 1: Prepare for deployment
+echo "📦 Step 1: Adding files to git..."
+git add .
+
+echo "💾 Step 2: Committing changes..."
+git commit -m "Prepare backend for Railway deployment with simple-server.js"
+
+echo "🌐 Step 3: Ready to push to GitHub!"
+echo ""
+echo "⚠️  MANUAL STEPS REQUIRED:"
+echo ""
+echo "1. Create GitHub repository:"
+echo "   - Go to: https://github.com/new"
+echo "   - Repository name: immerse-india-backend"
+echo "   - Set as Public"
+echo "   - DO NOT initialize with README"
+echo ""
+echo "2. Run these commands to push:"
+echo "   git remote add origin https://github.com/YOUR_USERNAME/immerse-india-backend.git"
+echo "   git branch -M main"
+echo "   git push -u origin main"
+echo ""
+echo "3. Deploy on Railway:"
+echo "   - Go to: https://railway.app/dashboard"
+echo "   - Click 'New Project'"
+echo "   - Select 'Deploy from GitHub repo'"
+echo "   - Choose 'immerse-india-backend'"
+echo ""
+echo "4. Add Environment Variables in Railway:"
+echo "   DATABASE_URL=postgresql://postgres:OnRXKfjBUimPwxXFnfxQzJaHAFEWqHXx@turntable.proxy.rlwy.net:15843/railway"
+echo "   JWT_SECRET=8850d84fce9f2aebf4de41b493458edf4129df8ef1c1e4ae2d32127f8994cf76"
+echo "   CLOUDINARY_CLOUD_NAME=dn8hhbstq"
+echo "   CLOUDINARY_API_KEY=493937614836824"
+echo "   CLOUDINARY_API_SECRET=ecfTCo3RPVs1i4hFj9rzsLILeCI"
+echo "   FRONTEND_URL=https://immerseindia.vercel.app"
+echo "   NODE_ENV=production"
+echo ""
+echo "🎉 Files are ready for Railway deployment!"
+echo "📖 See RAILWAY_DEPLOYMENT_GUIDE.md for complete instructions"

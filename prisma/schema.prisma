@@ -2,17 +2,22 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
+// Primary datasource: Railway PostgreSQL
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  // Connection pooling configuration
-  relationMode = "foreignKeys"
-  // Add direct connection info for better stability
   directUrl = env("DIRECT_URL")
 }
+
+// Dev fallback (optional): switch to SQLite by commenting the block above and uncommenting below
+// datasource db {
+//   provider = "sqlite"
+//   url      = "file:./dev.db"
+// }
 
 model User {
   id          String   @id @default(cuid())
@@ -38,7 +43,7 @@ model Experience {
   region      String
   title       String
   description String
-  highlights  Json     // Array of highlight strings
+  highlights  Json     // Array of highlights
   imageUrl    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -71,7 +76,7 @@ model Itinerary {
 model ItineraryDay {
   id          String @id @default(cuid())
   dayNumber   Int
-  activities  Json   // Array of activity strings
+  activities  Json   // Array of activities for the day
 
   // Relations
   itinerary   Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
@@ -97,12 +102,13 @@ model Image {
 }
 
 model Update {
-  id        String   @id @default(cuid())
-  type      String   // "announcement", "feature", "maintenance"
-  title     String
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  type        String   // "newsletter", "travel-trend", "new-experience"
+  title       String
+  content     String
+  externalUrl String?  // Optional external blog URL
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
   author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)

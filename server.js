@@ -1,27 +1,26 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { connectDatabase, disconnectDatabase } = require('./models/database');
+
+// Import database and routes
+const { connectDatabase, disconnectDatabase, prisma } = require('./models/database');
 const authRoutes = require('./routes/auth');
 const experienceRoutes = require('./routes/experiences');
-const prisma = require('./prisma');
+const itineraryRoutes = require('./routes/itineraries');
+const imageRoutes = require('./routes/images');
+const updateRoutes = require('./routes/updates');
 
 // Create Express app
 const app = express();
-const PORT = process.env.PORT || 3001; 
+const PORT = process.env.PORT || 5000;
+
 // Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   optionsSuccessStatus: 200,
 }));
 
-// Request logging middleware
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  next();
-});
-
-// Parse JSON with larger size limit and better error handling
+// Body parsing middleware
 app.use(express.json({ 
   limit: '10mb',
   verify: (req, res, buf, encoding) => {
@@ -39,21 +38,30 @@ app.use(express.json({
   }
 }));
 
-// Debug middleware to log request body
+app.use(express.urlencoded({ extended: true }));
+
+// Request logging middleware
 app.use((req, res, next) => {
-  if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
+// Debug middleware for request body (only in development)
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'development' && ['POST', 'PUT', 'PATCH'].includes(req.method)) {
     console.log('Request body:', req.body);
   }
   next();
 });
 
-app.use(express.urlencoded({ extended: true }));
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/experiences', experienceRoutes);
+app.use('/api/itineraries', itineraryRoutes);
+app.use('/api/images', imageRoutes);
+app.use('/api/updates', updateRoutes);
 
-// Health check endpoint
+// Health check endpoint with database status
 app.get('/api/health', async (req, res) => {
   try {
     // Test database connection as part of health check
@@ -61,16 +69,49 @@ app.get('/api/health', async (req, res) => {
     res.status(200).json({ 
       status: 'ok', 
       message: 'Server is running',
-      database: 'connected'
+      database: 'connected',
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Health check database error:', error);
     res.status(200).json({ 
       status: 'warning', 
       message: 'Server is running but database connection has issues',
-      database: 'disconnected'
+      database: 'disconnected',
+      timestamp: new Date().toISOString()
     });
   }
+});
+
+// Test endpoint with available endpoints
+app.get('/api/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'API is working',
+    availableEndpoints: [
+      'GET /api/health',
+      'GET /api/test',
+      'GET /api/auth/credentials',
+      'POST /api/auth/login',
+      'GET /api/auth/profile',
+      'GET /api/experiences',
+      'POST /api/experiences (requires auth)',
+      'PUT /api/experiences/:id (requires auth)',
+      'DELETE /api/experiences/:id (requires auth)',
+      'GET /api/itineraries',
+      'POST /api/itineraries (requires auth)',
+      'PUT /api/itineraries/:id (requires auth)',
+      'DELETE /api/itineraries/:id (requires auth)',
+      'GET /api/images',
+      'POST /api/images (requires auth)',
+      'PUT /api/images/:id (requires auth)',
+      'DELETE /api/images/:id (requires auth)',
+      'GET /api/updates',
+      'POST /api/updates (requires auth)',
+      'PUT /api/updates/:id (requires auth)',
+      'DELETE /api/updates/:id (requires auth)'
+    ]
+  });
 });
 
 // Error handler
@@ -78,42 +119,84 @@ app.use((err, req, res, next) => {
   console.error('Error:', err);
   const statusCode = err.statusCode || 500;
   res.status(statusCode).json({
-    error: {
-      message: err.message || 'Internal Server Error',
-      statusCode,
-    }
+    error: err.message || 'Internal Server Error',
+    code: err.code || 'SERVER_ERROR',
+    statusCode
   });
 });
 
-// Updated server startup with better error handling
+// Start the server
 const startServer = async () => {
   try {
-    await prisma.$connect();
-    console.log('Connected to database');
+    console.log('🚀 Starting Travel Dashboard API Server...');
     
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`Health check: http://localhost:${PORT}/api/health`);
+    // Try to connect to database (optional for basic functionality)
+    try {
+      const connected = await connectDatabase();
+      if (connected) {
+        console.log('✅ Database connected - all features will work');
+      } else {
+        console.log('⚠️  Database not connected - auth will still work with fixed credentials');
+      }
+    } catch (dbError) {
+      console.log('⚠️  Database connection failed - auth will still work with fixed credentials');
+      console.log('Database error:', dbError.message);
+    }
+
+    // Start the Express server
+    const server = app.listen(PORT, () => {
+      console.log(`
+🌐 Server running on port ${PORT}
+📍 API Base URL: http://localhost:${PORT}/api
+🔍 Health check: http://localhost:${PORT}/api/health
+🧪 Test endpoint: http://localhost:${PORT}/api/test
+🔑 Login credentials: http://localhost:${PORT}/api/auth/credentials
+
+Fixed Login Credentials:
+👨‍💼 Admin: admin@dashboard.com / admin123
+👤 User: user@dashboard.com / user123
+      `);
     }).on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
-        console.error(`Port ${PORT} is already in use. Try a different port.`);
+        console.error(`❌ Port ${PORT} is already in use. Try a different port.`);
       } else {
-        console.error('Failed to start server:', err);
+        console.error('❌ Failed to start server:', err);
       }
-    });
-  } catch (error) {
-    console.error('Failed to connect to database:', error);
-    // Don't exit in development
-    if (process.env.NODE_ENV === 'production') {
       process.exit(1);
-    }
+    });
+
+    // Handle graceful shutdown
+    const gracefulShutdown = async (signal) => {
+      console.log(`\n${signal} received. Shutting down gracefully...`);
+      
+      server.close(async () => {
+        try {
+          await disconnectDatabase();
+          console.log('✅ Database disconnected');
+        } catch (error) {
+          console.log('⚠️  Database disconnect error:', error.message);
+        }
+        process.exit(0);
+      });
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
   }
 };
 
-// Handle unhandled promise rejections
+// Handle uncaught exceptions and unhandled rejections
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Don't exit the process in development
   if (process.env.NODE_ENV === 'production') {
     process.exit(1);
   }
