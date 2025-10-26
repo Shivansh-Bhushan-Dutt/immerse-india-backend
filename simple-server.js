@@ -21,22 +21,20 @@ app.use((req, res, next) => {
   next();
 });
 
-// Fixed credentials for authentication
-const FIXED_USERS = {
-  admin: {
-    id: 'admin-001',
-    email: 'admin@dashboard.com',
-    password: 'admin123',
-    name: 'Admin User',
-    role: 'admin'
-  },
-  user: {
-    id: 'user-001',
-    email: 'user@dashboard.com',
-    password: 'user123',
-    name: 'Regular User',
-    role: 'user'
-  }
+// Production authentication credentials
+// Admin: Single fixed admin account
+// Users: Any email ending with @immerseindia.com with shared password
+const ADMIN_CREDENTIALS = {
+  email: 'immerseindia@admin.com',
+  password: 'ZNM8B4naq&',
+  id: 'admin-001',
+  name: 'Admin',
+  role: 'admin'
+};
+
+const USER_CONFIG = {
+  emailDomain: '@immerseindia.com',
+  password: 'immerse@2025'
 };
 
 // Production-ready data storage with comprehensive sample data
@@ -257,29 +255,48 @@ let data = {
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
   
-  const user = Object.values(FIXED_USERS).find(u => u.email === email && u.password === password);
-  
-  if (!user) {
-    return res.status(401).json({ error: 'Invalid credentials' });
+  // Validate input
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
   }
   
-  const { password: _, ...userWithoutPassword } = user;
+  // Check if admin login
+  if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
+    const { password: _, ...adminWithoutPassword } = ADMIN_CREDENTIALS;
+    return res.json({
+      success: true,
+      message: 'Login successful',
+      user: adminWithoutPassword,
+      token: 'mock-jwt-token-admin'
+    });
+  }
   
-  res.json({
-    success: true,
-    message: 'Login successful',
-    user: userWithoutPassword,
-    token: 'mock-jwt-token'
-  });
-});
-
-app.get('/api/auth/credentials', (req, res) => {
-  res.json({
-    demo_credentials: [
-      { role: 'admin', email: 'admin@dashboard.com', password: 'admin123' },
-      { role: 'user', email: 'user@dashboard.com', password: 'user123' }
-    ]
-  });
+  // Check if user login (email must end with @immerseindia.com)
+  if (email.endsWith(USER_CONFIG.emailDomain) && password === USER_CONFIG.password) {
+    // Extract name from email (part before @)
+    const emailUsername = email.split('@')[0];
+    const userName = emailUsername
+      .split('.')
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+    
+    const user = {
+      id: `user-${Date.now()}`,
+      email: email,
+      name: userName,
+      role: 'user'
+    };
+    
+    return res.json({
+      success: true,
+      message: 'Login successful',
+      user: user,
+      token: 'mock-jwt-token-user'
+    });
+  }
+  
+  // Invalid credentials
+  return res.status(401).json({ error: 'Invalid credentials' });
 });
 
 // Experiences routes
@@ -481,7 +498,6 @@ app.get('/api/test', (req, res) => {
       'GET /api/health',
       'GET /api/test', 
       'POST /api/auth/login',
-      'GET /api/auth/credentials',
       'GET /api/experiences',
       'POST /api/experiences',
       'PUT /api/experiences/:id',
@@ -505,14 +521,14 @@ app.get('/api/test', (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`
-🌐 Server running on port ${PORT}
+🌐 Immerse India Dashboard API
+🚀 Server running on port ${PORT}
 📍 API Base URL: http://localhost:${PORT}/api
 🔍 Health check: http://localhost:${PORT}/api/health
 🧪 Test endpoint: http://localhost:${PORT}/api/test
-🔑 Login credentials: http://localhost:${PORT}/api/auth/credentials
 
-Fixed Login Credentials:
-👨‍💼 Admin: admin@dashboard.com / admin123
-👤 User: user@dashboard.com / user123
+✅ Production-ready authentication enabled
+� Admin login: immerseindia@admin.com
+� User login: *@immerseindia.com (any email ending with @immerseindia.com)
   `);
 });
