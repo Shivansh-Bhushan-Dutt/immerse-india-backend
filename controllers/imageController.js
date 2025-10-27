@@ -114,11 +114,22 @@ const createImage = async (req, res) => {
       });
     }
 
-    // Handle image upload
+    // Handle image upload to Cloudinary
     let imageUrl = url; // Use provided URL if any
+    
     if (req.file) {
-      // Image uploaded via Cloudinary middleware
-      imageUrl = req.file.path; // Cloudinary returns the URL in path
+      // Image file uploaded - upload to Cloudinary
+      const { uploadToCloudinary } = require('../middleware/upload');
+      try {
+        const result = await uploadToCloudinary(req.file.buffer, 'immerse-india/images');
+        imageUrl = result.secure_url; // Use Cloudinary URL
+        console.log('Image uploaded to Cloudinary:', imageUrl);
+      } catch (cloudinaryError) {
+        console.error('Cloudinary upload error:', cloudinaryError);
+        return res.status(500).json({
+          error: 'Failed to upload image to Cloudinary'
+        });
+      }
     }
 
     if (!imageUrl) {
@@ -158,7 +169,8 @@ const createImage = async (req, res) => {
         success: true,
         message: 'Image created successfully',
         data: image,
-        source: 'database'
+        source: 'database',
+        cloudinary: !!req.file // Indicate if uploaded to Cloudinary
       });
     } catch (dbError) {
       console.log('Database not available, using in-memory store');
@@ -168,7 +180,8 @@ const createImage = async (req, res) => {
         success: true,
         message: 'Image created successfully',
         data: newImage,
-        source: 'memory'
+        source: 'memory',
+        cloudinary: !!req.file
       });
     }
   } catch (error) {
@@ -185,10 +198,22 @@ const updateImage = async (req, res) => {
     const { id } = req.params;
     const { destination, region, caption, url } = req.body;
 
-    // Handle image upload
+    // Handle image upload to Cloudinary
     let imageUrl = url;
+    
     if (req.file) {
-      imageUrl = req.file.path; // Cloudinary URL
+      // New image file uploaded - upload to Cloudinary
+      const { uploadToCloudinary } = require('../middleware/upload');
+      try {
+        const result = await uploadToCloudinary(req.file.buffer, 'immerse-india/images');
+        imageUrl = result.secure_url;
+        console.log('Image updated on Cloudinary:', imageUrl);
+      } catch (cloudinaryError) {
+        console.error('Cloudinary upload error:', cloudinaryError);
+        return res.status(500).json({
+          error: 'Failed to upload image to Cloudinary'
+        });
+      }
     }
 
     const updateData = {
@@ -214,7 +239,8 @@ const updateImage = async (req, res) => {
         success: true,
         message: 'Image updated successfully',
         data: image,
-        source: 'database'
+        source: 'database',
+        cloudinary: !!req.file
       });
     } catch (dbError) {
       console.log('Database not available, using in-memory store');
