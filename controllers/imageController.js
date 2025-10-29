@@ -104,11 +104,17 @@ const getImageById = async (req, res) => {
 // Create new image
 const createImage = async (req, res) => {
   try {
+    console.log('=== CREATE IMAGE REQUEST ===');
+    console.log('Body:', req.body);
+    console.log('File:', req.file);
+    console.log('User:', req.user?.id);
+    
     const { destination, region, caption, url } = req.body;
     const userId = req.user.id;
     
     // Validate required fields
     if (!destination || !region || !caption) {
+      console.error('Missing required fields');
       return res.status(400).json({
         error: 'Missing required fields: destination, region, caption'
       });
@@ -119,24 +125,43 @@ const createImage = async (req, res) => {
     
     if (req.file) {
       // Image file uploaded - upload to Cloudinary
+      console.log('File detected, uploading to Cloudinary...');
+      console.log('File buffer size:', req.file.buffer?.length);
+      
       const { uploadToCloudinary } = require('../middleware/upload');
       try {
         const result = await uploadToCloudinary(req.file.buffer, 'immerse-india/images');
         imageUrl = result.secure_url; // Use Cloudinary URL
-        console.log('Image uploaded to Cloudinary:', imageUrl);
+        console.log('✅ Image uploaded to Cloudinary:', imageUrl);
+        console.log('Cloudinary result:', {
+          url: result.secure_url,
+          publicId: result.public_id,
+          format: result.format
+        });
       } catch (cloudinaryError) {
-        console.error('Cloudinary upload error:', cloudinaryError);
+        console.error('❌ Cloudinary upload error:', cloudinaryError);
         return res.status(500).json({
-          error: 'Failed to upload image to Cloudinary'
+          error: 'Failed to upload image to Cloudinary',
+          details: cloudinaryError.message
         });
       }
-    }
-
-    if (!imageUrl) {
+    } else if (url) {
+      console.log('Using provided URL:', url);
+    } else {
+      console.error('No file or URL provided');
       return res.status(400).json({
         error: 'Either provide an image URL or upload an image file'
       });
     }
+
+    if (!imageUrl) {
+      console.error('Image URL is still empty after processing');
+      return res.status(400).json({
+        error: 'Failed to get image URL'
+      });
+    }
+
+    console.log('Final image URL:', imageUrl);
 
     const newImage = {
       id: Date.now().toString(),
@@ -165,6 +190,8 @@ const createImage = async (req, res) => {
         }
       });
 
+      console.log('✅ Image saved to database:', image.id);
+      
       res.status(201).json({
         success: true,
         message: 'Image created successfully',
@@ -174,6 +201,7 @@ const createImage = async (req, res) => {
       });
     } catch (dbError) {
       console.log('Database not available, using in-memory store');
+      console.error('DB Error:', dbError);
       imagesStore.push(newImage);
       
       res.status(201).json({
