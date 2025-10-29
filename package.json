@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "npx prisma db push --accept-data-loss && node server.js",
+    "start": "prisma generate && prisma db push --accept-data-loss --skip-generate && node server.js",
     "dev": "nodemon server.js",
-    "build": "prisma generate",
+    "build": "echo 'Build complete'",
     "start:simple": "node simple-server.js",
     "dev:simple": "nodemon simple-server.js",
     "setup": "node setup.js",
