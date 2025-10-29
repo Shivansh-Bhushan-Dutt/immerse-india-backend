@@ -163,6 +163,17 @@ const createImage = async (req, res) => {
 
     console.log('Final image URL:', imageUrl);
 
+    // Extra validation - ensure imageUrl is not undefined
+    if (!imageUrl || imageUrl === 'undefined') {
+      console.error('❌ CRITICAL: imageUrl is undefined or invalid');
+      console.error('req.file:', !!req.file);
+      console.error('req.body.url:', req.body.url);
+      return res.status(500).json({
+        error: 'Failed to process image URL',
+        details: 'Image URL is undefined after processing'
+      });
+    }
+
     const newImage = {
       id: Date.now().toString(),
       destination,
@@ -172,6 +183,8 @@ const createImage = async (req, res) => {
       createdAt: Date.now(),
       authorId: userId
     };
+
+    console.log('Created newImage object:', JSON.stringify(newImage, null, 2));
 
     try {
       // Try database first
@@ -204,13 +217,18 @@ const createImage = async (req, res) => {
       console.error('DB Error:', dbError);
       imagesStore.push(newImage);
       
-      res.status(201).json({
+      const response = {
         success: true,
         message: 'Image created successfully',
         data: newImage,
         source: 'memory',
         cloudinary: !!req.file
-      });
+      };
+      
+      console.log('In-memory response:', JSON.stringify(response, null, 2));
+      console.log('Image URL in response:', response.data.url);
+      
+      res.status(201).json(response);
     }
   } catch (error) {
     console.error('Create image error:', error);
