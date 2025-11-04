@@ -2,31 +2,24 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
+  provider = "prisma-client-js"
 }
 
-// Primary datasource: Railway PostgreSQL
+// Supabase PostgreSQL datasource
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-// Dev fallback (optional): switch to SQLite by commenting the block above and uncommenting below
-// datasource db {
-//   provider = "sqlite"
-//   url      = "file:./dev.db"
-// }
-
 model User {
-  id          String   @id @default(cuid())
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   email       String   @unique
   password    String
   name        String
   role        String   @default("user") // "admin" or "user"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
   experiences Experience[]
@@ -38,81 +31,81 @@ model User {
 }
 
 model Experience {
-  id          String   @id @default(cuid())
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   destination String
   region      String
   title       String
   description String
-  highlights  Json     // Array of highlights
-  imageUrl    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  highlights  Json     @default("[]") // Array of highlights
+  imageUrl    String?  @map("image_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
   author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  authorId String
+  authorId String @map("author_id") @db.Uuid
 
   @@map("experiences")
 }
 
 model Itinerary {
-  id          String   @id @default(cuid())
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   destination String
   region      String
   title       String
   duration    String
-  imageUrl    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  imageUrl    String?  @map("image_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
   author   User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  authorId String
+  authorId String          @map("author_id") @db.Uuid
   days     ItineraryDay[]
 
   @@map("itineraries")
 }
 
 model ItineraryDay {
-  id          String @id @default(cuid())
-  dayNumber   Int
-  activities  Json   // Array of activities for the day
+  id          String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  dayNumber   Int    @map("day_number")
+  activities  Json   @default("[]") // Array of activities for the day
 
   // Relations
   itinerary   Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-  itineraryId String
+  itineraryId String    @map("itinerary_id") @db.Uuid
 
   @@map("itinerary_days")
 }
 
 model Image {
-  id          String   @id @default(cuid())
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   destination String
   region      String
   url         String
   caption     String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
   author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  authorId String
+  authorId String @map("author_id") @db.Uuid
 
   @@map("images")
 }
 
 model Update {
-  id          String   @id @default(cuid())
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   type        String   // "newsletter", "travel-trend", "new-experience"
   title       String
   content     String
-  externalUrl String?  // Optional external blog URL
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  externalUrl String?  @map("external_url") // Optional external blog URL
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
   author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  authorId String
+  authorId String @map("author_id") @db.Uuid
 
   @@map("updates")
 }

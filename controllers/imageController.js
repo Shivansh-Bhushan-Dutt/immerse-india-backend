@@ -25,27 +25,87 @@ let imagesStore = [
 // Get all images
 const getAllImages = async (req, res) => {
   try {
+    const { region, page = 1, limit = 50, search } = req.query;
+    const skip = (page - 1) * limit;
+    
     // Try database first, fall back to in-memory store
     try {
-      const images = await prisma.image.findMany({
-        include: {
-          author: {
-            select: { id: true, name: true, email: true }
-          }
-        },
-        orderBy: { createdAt: 'desc' }
-      });
+      const where = {};
+      if (region && region !== 'All') {
+        where.region = region;
+      }
+      
+      // Add search functionality
+      if (search && search.trim()) {
+        where.OR = [
+          { destination: { contains: search.trim(), mode: 'insensitive' } },
+          { caption: { contains: search.trim(), mode: 'insensitive' } }
+        ];
+      }
+
+      const [images, total] = await Promise.all([
+        prisma.image.findMany({
+          where,
+          include: {
+            author: {
+              select: { id: true, name: true, email: true }
+            }
+          },
+          orderBy: { createdAt: 'desc' },
+          skip: parseInt(skip),
+          take: parseInt(limit)
+        }),
+        prisma.image.count({ where })
+      ]);
       
       res.json({
         success: true,
         data: images,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit),
+          hasNext: (page * limit) < total,
+          hasPrev: page > 1
+        },
         source: 'database'
       });
     } catch (dbError) {
       console.log('Database not available, using in-memory store');
+      
+      // Apply filters to in-memory data
+      let filteredData = [...imagesStore];
+      
+      if (region && region !== 'All') {
+        filteredData = filteredData.filter(item => item.region === region);
+      }
+      
+      if (search && search.trim()) {
+        const searchTerm = search.trim().toLowerCase();
+        filteredData = filteredData.filter(item => 
+          item.destination.toLowerCase().includes(searchTerm) ||
+          item.caption.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      // Apply pagination
+      const total = filteredData.length;
+      const startIndex = skip;
+      const endIndex = startIndex + parseInt(limit);
+      const paginatedData = filteredData.slice(startIndex, endIndex);
+      
       res.json({
         success: true,
-        data: imagesStore,
+        data: paginatedData,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit),
+          hasNext: endIndex < total,
+          hasPrev: page > 1
+        },
         source: 'memory'
       });
     }

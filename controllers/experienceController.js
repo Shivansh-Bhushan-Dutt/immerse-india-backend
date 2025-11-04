@@ -3,12 +3,21 @@ const { uploadToCloudinary } = require('../middleware/upload');
 
 const getAllExperiences = async (req, res) => {
   try {
-    const { region, page = 1, limit = 10 } = req.query;
+    const { region, page = 1, limit = 50, search } = req.query;
     const skip = (page - 1) * limit;
     
     const where = {};
     if (region && region !== 'All') {
       where.region = region;
+    }
+    
+    // Add search functionality
+    if (search && search.trim()) {
+      where.OR = [
+        { destination: { contains: search.trim(), mode: 'insensitive' } },
+        { title: { contains: search.trim(), mode: 'insensitive' } },
+        { description: { contains: search.trim(), mode: 'insensitive' } }
+      ];
     }
 
     const [experiences, total] = await Promise.all([
@@ -33,8 +42,11 @@ const getAllExperiences = async (req, res) => {
         page: parseInt(page),
         limit: parseInt(limit),
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+        hasNext: (page * limit) < total,
+        hasPrev: page > 1
+      },
+      source: 'database'
     });
   } catch (error) {
     console.error('Get experiences error:', error);
