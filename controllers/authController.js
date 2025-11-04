@@ -4,6 +4,21 @@ const jwt = require('jsonwebtoken');
 
 const prisma = new PrismaClient();
 
+// Email validation function for specific requirements
+const validateEmail = (email) => {
+  // Admin email: must be exactly 'immerseindia@admin.com'
+  if (email === 'immerseindia@admin.com') {
+    return { isValid: true, role: 'admin' };
+  }
+  
+  // User email: must end with '@immerseindia.com' but not be the admin email
+  if (email.endsWith('@immerseindia.com') && email !== 'immerseindia@admin.com') {
+    return { isValid: true, role: 'user' };
+  }
+  
+  return { isValid: false, role: null };
+};
+
 // Debug middleware to check incoming request bodies
 const debugRequestBody = (req, res, next) => {
   console.log('Request body:', req.body);
@@ -111,6 +126,16 @@ exports.login = async (req, res) => {
         error: 'Missing required fields',
         message: 'Email and password are required',
         code: 'INVALID_INPUT'
+      });
+    }
+
+    // Validate email format according to business rules
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({
+        error: 'Invalid email format',
+        message: 'Email must be immerseindia@admin.com for admin or end with @immerseindia.com for users',
+        code: 'INVALID_EMAIL_FORMAT'
       });
     }
 
