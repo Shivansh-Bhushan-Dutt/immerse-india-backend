@@ -208,4 +208,7 @@ exports.getCurrentUser = async (req, res) => {
   }
 };
 
+// Get current user profile (alias for getCurrentUser)
+exports.getProfile = exports.getCurrentUser;
+
 module.exports.debugRequestBody = debugRequestBody;

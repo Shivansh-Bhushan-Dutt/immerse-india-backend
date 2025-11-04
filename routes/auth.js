@@ -1,12 +1,12 @@
 const express = require('express');
-const { login, getProfile, getCredentials } = require('../controllers/simpleAuthController');
+const { login, getProfile, register } = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
 // Public routes
 router.post('/login', login);
-router.get('/credentials', getCredentials); // For demo - shows available login credentials
+router.post('/register', register);
 
 // Protected routes
 router.get('/profile', authenticateToken, getProfile);
