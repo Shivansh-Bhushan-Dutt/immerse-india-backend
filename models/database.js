@@ -9,19 +9,6 @@ const prisma = new PrismaClient({
 // Database connection helper
 const connectDatabase = async () => {
   try {
-    // First, try to auto-migrate the database
-    console.log('🔄 Checking database schema...');
-    const { execSync } = require('child_process');
-    try {
-      execSync('npx prisma db push --accept-data-loss --skip-generate', { 
-        stdio: 'inherit',
-        cwd: __dirname + '/..'
-      });
-      console.log('✅ Database schema synchronized');
-    } catch (migrateError) {
-      console.log('⚠️ Could not auto-migrate, continuing anyway...');
-    }
-
     // Test connection with a simple query
     await prisma.$queryRaw`SELECT 1`;
     console.log('✅ Connected to database successfully');
