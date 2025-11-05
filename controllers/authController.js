@@ -133,24 +133,65 @@ exports.login = async (req, res) => {
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) {
       return res.status(400).json({
-        error: 'Invalid email format',
-        message: 'Email must be immerseindia@admin.com for admin or end with @immerseindia.com for users',
+        error: 'Invalid configuration',
+        message: 'Access restricted. Only authorized email domains are allowed.',
         code: 'INVALID_EMAIL_FORMAT'
       });
     }
 
-    // Find user
-    const user = await prisma.user.findUnique({
+    // Find or create user based on email type
+    let user = await prisma.user.findUnique({
       where: { email }
     });
 
-    // Check if user exists and password is correct
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({
-        error: 'Authentication failed',
-        message: 'Invalid email or password',
-        code: 'AUTH_FAILED'
-      });
+    // Handle admin login - fixed credentials only
+    if (email === 'immerseindia@admin.com') {
+      if (!user || !(await bcrypt.compare(password, user.password))) {
+        return res.status(401).json({
+          error: 'Invalid configuration',
+          message: 'Authentication failed',
+          code: 'INVALID_CREDENTIALS'
+        });
+      }
+    }
+    // Handle user login - auto-create if doesn't exist with correct password
+    else if (email.endsWith('@immerseindia.com')) {
+      const correctUserPassword = 'immerse@2025';
+      
+      // Check if password is correct
+      if (password !== correctUserPassword) {
+        return res.status(401).json({
+          error: 'Invalid configuration',
+          message: 'Authentication failed',
+          code: 'INVALID_CREDENTIALS'
+        });
+      }
+
+      // If user doesn't exist, create them automatically
+      if (!user) {
+        console.log(`Creating new user: ${email}`);
+        const hashedPassword = await bcrypt.hash(correctUserPassword, 10);
+        const name = email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1);
+        
+        user = await prisma.user.create({
+          data: {
+            name: name,
+            email: email,
+            password: hashedPassword,
+            role: 'user'
+          }
+        });
+        console.log(`New user created: ${email}`);
+      } else {
+        // Verify existing user password
+        if (!(await bcrypt.compare(password, user.password))) {
+          return res.status(401).json({
+            error: 'Invalid configuration',
+            message: 'Authentication failed',
+            code: 'INVALID_CREDENTIALS'
+          });
+        }
+      }
     }
 
     // Create token
