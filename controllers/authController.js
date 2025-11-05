@@ -158,17 +158,17 @@ exports.login = async (req, res) => {
     else if (email.endsWith('@immerseindia.com')) {
       const correctUserPassword = 'immerse@2025';
       
-      // Check if password is correct
-      if (password !== correctUserPassword) {
-        return res.status(401).json({
-          error: 'Invalid configuration',
-          message: 'Authentication failed',
-          code: 'INVALID_CREDENTIALS'
-        });
-      }
-
       // If user doesn't exist, create them automatically
       if (!user) {
+        // Check if password is correct before creating user
+        if (password !== correctUserPassword) {
+          return res.status(401).json({
+            error: 'Invalid configuration',
+            message: 'Authentication failed',
+            code: 'INVALID_CREDENTIALS'
+          });
+        }
+
         console.log(`Creating new user: ${email}`);
         const hashedPassword = await bcrypt.hash(correctUserPassword, 10);
         const name = email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1);
@@ -183,7 +183,7 @@ exports.login = async (req, res) => {
         });
         console.log(`New user created: ${email}`);
       } else {
-        // Verify existing user password
+        // For existing users, verify the hashed password
         if (!(await bcrypt.compare(password, user.password))) {
           return res.status(401).json({
             error: 'Invalid configuration',
@@ -195,6 +195,15 @@ exports.login = async (req, res) => {
     }
 
     // Create token
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET environment variable is not set');
+      return res.status(500).json({
+        error: 'Server configuration error',
+        message: 'Authentication service not properly configured',
+        code: 'CONFIG_ERROR'
+      });
+    }
+
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
