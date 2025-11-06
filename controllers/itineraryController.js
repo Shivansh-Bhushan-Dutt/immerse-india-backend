@@ -172,11 +172,14 @@ const createItinerary = async (req, res) => {
       });
     }
 
-    // Handle image upload
-    let imageUrl = null;
+    // Handle image upload to Cloudinary
+    let imageUrl = req.body.imageUrl || null;
     if (req.file) {
-      // Image uploaded via Cloudinary middleware
-      imageUrl = req.file.path; // Cloudinary returns the URL in path
+      console.log('📤 Uploading itinerary image to Cloudinary...');
+      const { uploadToCloudinary } = require('../middleware/upload');
+      const result = await uploadToCloudinary(req.file.buffer, 'travel-dashboard/itineraries');
+      imageUrl = result.secure_url;
+      console.log('✅ Itinerary image uploaded:', imageUrl);
     }
 
     // Parse days from string if needed
@@ -191,7 +194,7 @@ const createItinerary = async (req, res) => {
           title,
           duration,
           imageUrl,
-          authorId: req.user.id, // Use req.user.id directly like experiences
+          authorId: req.user.id,
           days: {
             create: parsedDays.map(day => ({
               dayNumber: day.day,
@@ -252,10 +255,14 @@ const updateItinerary = async (req, res) => {
     const { id } = req.params;
     const { destination, region, title, duration, days } = req.body;
 
-    // Handle image upload
+    // Handle image upload to Cloudinary
     let imageUrl = undefined;
     if (req.file) {
-      imageUrl = req.file.path; // Cloudinary URL
+      console.log('📤 Uploading updated itinerary image to Cloudinary...');
+      const { uploadToCloudinary } = require('../middleware/upload');
+      const result = await uploadToCloudinary(req.file.buffer, 'travel-dashboard/itineraries');
+      imageUrl = result.secure_url;
+      console.log('✅ Updated itinerary image uploaded:', imageUrl);
     }
 
     const updateData = {
