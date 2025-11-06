@@ -164,7 +164,6 @@ const getItineraryById = async (req, res) => {
 const createItinerary = async (req, res) => {
   try {
     const { destination, region, title, duration, days } = req.body;
-    const userId = req.user.id;
     
     // Validate required fields
     if (!destination || !region || !title || !duration || !days) {
@@ -180,17 +179,8 @@ const createItinerary = async (req, res) => {
       imageUrl = req.file.path; // Cloudinary returns the URL in path
     }
 
-    const newItinerary = {
-      id: Date.now().toString(),
-      destination,
-      region,
-      title,
-      duration,
-      imageUrl,
-      days: JSON.parse(days), // Parse days if sent as string
-      createdAt: Date.now(),
-      authorId: userId
-    };
+    // Parse days from string if needed
+    const parsedDays = typeof days === 'string' ? JSON.parse(days) : days;
 
     try {
       // Try database first
@@ -201,9 +191,9 @@ const createItinerary = async (req, res) => {
           title,
           duration,
           imageUrl,
-          authorId: userId,
+          authorId: req.user.id, // Use req.user.id directly like experiences
           days: {
-            create: JSON.parse(days).map(day => ({
+            create: parsedDays.map(day => ({
               dayNumber: day.day,
               activities: day.activities
             }))
@@ -224,7 +214,20 @@ const createItinerary = async (req, res) => {
         source: 'database'
       });
     } catch (dbError) {
-      console.log('Database not available, using in-memory store');
+      console.error('Database error, using in-memory store:', dbError);
+      
+      const newItinerary = {
+        id: Date.now().toString(),
+        destination,
+        region,
+        title,
+        duration,
+        imageUrl,
+        days: parsedDays,
+        createdAt: Date.now(),
+        authorId: req.user.id
+      };
+      
       itinerariesStore.push(newItinerary);
       
       res.status(201).json({
@@ -237,7 +240,8 @@ const createItinerary = async (req, res) => {
   } catch (error) {
     console.error('Create itinerary error:', error);
     res.status(500).json({
-      error: 'Failed to create itinerary'
+      error: 'Failed to create itinerary',
+      message: error.message
     });
   }
 };
