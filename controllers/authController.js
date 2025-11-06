@@ -162,35 +162,48 @@ exports.login = async (req, res) => {
       if (!user) {
         // Check if password is correct before creating user
         if (password !== correctUserPassword) {
+          console.log(`❌ Failed login attempt for new user: ${email} - incorrect password`);
           return res.status(401).json({
             error: 'Invalid configuration',
-            message: 'Authentication failed',
+            message: 'Authentication failed. Please check your password.',
             code: 'INVALID_CREDENTIALS'
           });
         }
 
-        console.log(`Creating new user: ${email}`);
-        const hashedPassword = await bcrypt.hash(correctUserPassword, 10);
-        const name = email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1);
-        
-        user = await prisma.user.create({
-          data: {
-            name: name,
-            email: email,
-            password: hashedPassword,
-            role: 'user'
-          }
-        });
-        console.log(`New user created: ${email}`);
+        console.log(`✅ Creating new user: ${email}`);
+        try {
+          const hashedPassword = await bcrypt.hash(correctUserPassword, 10);
+          const name = email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1);
+          
+          user = await prisma.user.create({
+            data: {
+              name: name,
+              email: email,
+              password: hashedPassword,
+              role: 'user'
+            }
+          });
+          console.log(`✅ New user created successfully: ${email} (ID: ${user.id})`);
+        } catch (createError) {
+          console.error(`❌ Error creating user ${email}:`, createError);
+          return res.status(500).json({
+            error: 'Failed to create user',
+            message: 'Could not create user account. Please try again.',
+            code: 'USER_CREATION_FAILED'
+          });
+        }
       } else {
         // For existing users, verify the hashed password
+        console.log(`🔐 Verifying password for existing user: ${email}`);
         if (!(await bcrypt.compare(password, user.password))) {
+          console.log(`❌ Failed login attempt for existing user: ${email} - incorrect password`);
           return res.status(401).json({
             error: 'Invalid configuration',
-            message: 'Authentication failed',
+            message: 'Authentication failed. Please check your password.',
             code: 'INVALID_CREDENTIALS'
           });
         }
+        console.log(`✅ Password verified for: ${email}`);
       }
     }
 

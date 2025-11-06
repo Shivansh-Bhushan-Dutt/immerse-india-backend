@@ -1,30 +1,48 @@
 const { PrismaClient } = require('@prisma/client');
 
-// Create PrismaClient with minimal logging to reduce console noise
+// Create PrismaClient with connection pooling and optimizations for serverless
 const prisma = new PrismaClient({
-  log: ['error', 'warn'], // Only log errors and warnings, not queries
-  errorFormat: 'minimal'
+  log: ['error', 'warn'], // Only log errors and warnings
+  errorFormat: 'minimal',
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL
+    }
+  },
+  // Connection pool configuration for serverless
+  connection: {
+    connectionLimit: 10,
+    pool: {
+      min: 2,
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000
+    }
+  }
 });
 
-// Database connection helper
+// Global prisma instance to reuse connections
+global.prisma = global.prisma || prisma;
+
+// Database connection helper with retry logic
 const connectDatabase = async () => {
   try {
     // Test connection with a simple query
-    await prisma.$queryRaw`SELECT 1`;
+    await global.prisma.$queryRaw`SELECT 1`;
     console.log('✅ Connected to database successfully');
     return true;
   } catch (error) {
-    console.error('❌ Database connection failed:', error);
+    console.error('❌ Database connection failed:', error.message);
     
     // Try again after a short delay
     try {
       console.log('🔄 Retrying connection in 2 seconds...');
       await new Promise(resolve => setTimeout(resolve, 2000));
-      await prisma.$queryRaw`SELECT 1`;
+      await global.prisma.$queryRaw`SELECT 1`;
       console.log('✅ Retry successful, connected to database');
       return true;
     } catch (retryError) {
-      console.error('❌ Retry failed, database connection error:', retryError);
+      console.error('❌ Retry failed:', retryError.message);
       return false;
     }
   }
@@ -33,7 +51,7 @@ const connectDatabase = async () => {
 // Graceful disconnect
 const disconnectDatabase = async () => {
   try {
-    await prisma.$disconnect();
+    await global.prisma.$disconnect();
     console.log('🔌 Disconnected from database');
   } catch (error) {
     console.error('❌ Error disconnecting from database:', error);
@@ -41,7 +59,7 @@ const disconnectDatabase = async () => {
 };
 
 module.exports = {
-  prisma,
+  prisma: global.prisma,
   connectDatabase,
   disconnectDatabase
 };
