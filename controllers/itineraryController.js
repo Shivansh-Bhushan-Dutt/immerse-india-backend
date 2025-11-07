@@ -172,8 +172,8 @@ const createItinerary = async (req, res) => {
       });
     }
 
-    // Handle image upload to Cloudinary
-    let imageUrl = req.body.imageUrl || null;
+    // Handle image URL or file upload to Cloudinary
+    let imageUrl = req.body.imageUrl; // Support URL-based image uploads
     if (req.file) {
       console.log('📤 Uploading itinerary image to Cloudinary...');
       const { uploadToCloudinary } = require('../middleware/upload');
@@ -255,8 +255,8 @@ const updateItinerary = async (req, res) => {
     const { id } = req.params;
     const { destination, region, title, duration, days } = req.body;
 
-    // Handle image upload to Cloudinary
-    let imageUrl = undefined;
+    // Handle image URL or file upload to Cloudinary
+    let imageUrl = req.body.imageUrl; // Support URL-based image updates
     if (req.file) {
       console.log('📤 Uploading updated itinerary image to Cloudinary...');
       const { uploadToCloudinary } = require('../middleware/upload');
