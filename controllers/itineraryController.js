@@ -163,7 +163,7 @@ const getItineraryById = async (req, res) => {
 // Create new itinerary
 const createItinerary = async (req, res) => {
   try {
-    const { destination, region, title, duration, days } = req.body;
+    const { destination, region, title, duration, description, days } = req.body;
     
     // Validate required fields
     if (!destination || !region || !title || !duration || !days) {
@@ -193,6 +193,7 @@ const createItinerary = async (req, res) => {
           region,
           title,
           duration,
+          description,
           imageUrl,
           authorId: req.user.id,
           days: {
@@ -253,7 +254,7 @@ const createItinerary = async (req, res) => {
 const updateItinerary = async (req, res) => {
   try {
     const { id } = req.params;
-    const { destination, region, title, duration, days } = req.body;
+    const { destination, region, title, duration, description, days } = req.body;
 
     // Handle image URL or file upload to Cloudinary
     let imageUrl = req.body.imageUrl; // Support URL-based image updates
@@ -270,6 +271,7 @@ const updateItinerary = async (req, res) => {
       ...(region && { region }),
       ...(title && { title }),
       ...(duration && { duration }),
+      ...(description !== undefined && { description }),
       ...(imageUrl && { imageUrl })
     };
 
